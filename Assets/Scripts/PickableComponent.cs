@@ -33,20 +33,20 @@ public class PickableComponent : MonoBehaviour, ISelectHandler
 
         copiedObject.name = selectedObject.GetComponent<Image>().sprite.name;
         Destroy(copiedObject.GetComponent<Button>());
+
         // Sao chép các thuộc tính RectTransform
         RectTransform selectedRect = selectedObject.GetComponent<RectTransform>();
+
         RectTransform copiedRect = copiedObject.GetComponent<RectTransform>();
 
         // Sao chép các thuộc tính RectTransform
-        copiedRect.sizeDelta = selectedRect.sizeDelta;
-        copiedRect.anchoredPosition = selectedRect.anchoredPosition;
-        copiedRect.pivot = selectedRect.pivot;
-        copiedRect.anchorMin = selectedRect.anchorMin;
-        copiedRect.anchorMax = selectedRect.anchorMax;
         copiedRect.localRotation = selectedRect.localRotation;
         copiedRect.localScale = new Vector2(1f,1f);
 
-        ItemController.Instance.UpdateEquipedItem(copiedObject, _oldName);
+        if (copiedObject.name != _oldName)
+        {
+            ItemController.Instance.UpdateEquipedItem(copiedObject.name, _oldName);
+        }
     }
 
     void DestroyAllChildren(GameObject parent)

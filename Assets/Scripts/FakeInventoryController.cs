@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿
 using UnityEngine;
 using ExtensionMethods;
 using UnityEditor;
 using Common;
+using ExtensionMethods;
 //This class purpose is only to initialize the EquipmentSlot objects from the inventory (in a very ugly way :)) ) Do not use this class as a template for your inventory
 public class FakeInventoryController : MonoBehaviour
 {
@@ -29,32 +28,71 @@ public class FakeInventoryController : MonoBehaviour
         InitializeItems();
     }
 
-    public void InitializeItems()
+    public void InitializeItems(string? nameObject = null)
     {
-        var list = ItemController.Instance.GetSelectedItemList();
+        var list = ItemController.Instance._listSelectedItem;
 
         string spritePath = string.Empty;
         Sprite? sprite = null;
-        foreach (SelectedItemRecord item in list)
+
+        //Tạo mới đùng item kéo từ dưới lên
+        if(!string.IsNullOrEmpty(nameObject))
         {
-            if(!IsCreateSelectedItem(item.Name))
+            foreach (SelectedItemRecord item in list)
             {
-                GameObject selectedItem = Instantiate(PrefabSelectedItem, inventoryItemsContainer.transform);
-                selectedItem.name = item.Name;
-                GameObject child = selectedItem.GetChildItem();
-                if (child != null)
+                // chưa tồn tại ở list trên và list dưới ||| ném từ dưới lên trên 
+                if (item.Name == nameObject)
                 {
-                    child.name = item.Name;
-                    spritePath = Constant.PathImageItem + item.Name + "." + Constant.FileImagePNG;
-                    sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
-                    if (sprite != null)
+                    GameObject selectedItem = Instantiate(PrefabSelectedItem, inventoryItemsContainer.transform);
+                    selectedItem.name = item.Name;
+                    GameObject child = selectedItem.GetChildItem();
+                    if (child != null)
                     {
-                        child.GetComponent<UnityEngine.UI.Image>().sprite = sprite;
+                        child.name = item.Name;
+                        spritePath = Constant.PathImageItem + item.Name + "." + Constant.FileImagePNG;
+                        sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                        if (sprite != null)
+                        {
+                            child.GetComponent<UnityEngine.UI.Image>().sprite = sprite;
+                        }
                     }
+                    item.ChildNewObject = child;
+                    item.NewObject = selectedItem;
+                }
+            }
+            return;
+        }
+        else
+        {
+            foreach (SelectedItemRecord item in list)
+            {
+                // chưa tồn tại ở list trên và list dưới
+                if (!IsCreateSelectedItem(item.Name) && !ItemController.Instance.CheckExistInEquipedItem(item.Name))
+                {
+                    GameObject selectedItem = Instantiate(PrefabSelectedItem, inventoryItemsContainer.transform);
+                    selectedItem.name = item.Name;
+                    GameObject child = selectedItem.GetChildItem();
+                    if (child != null)
+                    {
+                        child.name = item.Name;
+                        spritePath = Constant.PathImageItem + item.Name + "." + Constant.FileImagePNG;
+                        sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                        if (sprite != null)
+                        {
+                            child.GetComponent<UnityEngine.UI.Image>().sprite = sprite;
+                        }
+                    }
+                    item.ChildNewObject = child;
+                    item.NewObject = selectedItem;
                 }
             }
         }
     }
+
+    /// <summary>
+    /// if created item = true
+    /// if did not create item = false
+    /// </summary>
     private bool IsCreateSelectedItem(string nameObject)
     {
         foreach(Transform child in inventoryItemsContainer.transform)
@@ -62,6 +100,25 @@ public class FakeInventoryController : MonoBehaviour
             if( nameObject == child.name)
             {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem có phải trường hợp kéo từ equip lên trên hay không?
+    /// </summary>
+    /// <param name="nameObject"></param>
+    /// <returns></returns>
+    private bool IsRemoveEquipedBox(string nameObject)
+    {
+        foreach (Transform child in inventoryItemsContainer.transform)
+        {
+            if (child.gameObject.activeSelf && child.gameObject.name == nameObject)
+            {
+                var childOfChild = child.gameObject.GetChildItem();
+
+                return childOfChild == null;
             }
         }
         return false;

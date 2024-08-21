@@ -6,5 +6,4 @@ namespace Common
 
         public static readonly string FileImagePNG = "png";
     }
-}    
-
+}

@@ -1,8 +1,10 @@
+﻿using Common;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using ExtensionMethods;
 
 public class DraggableComponent : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -37,7 +39,7 @@ public class DraggableComponent : MonoBehaviour, IInitializePotentialDragHandler
         {
             return;
         }
-
+        transform.position = Input.mousePosition;
         OnDragHandler?.Invoke(eventData);
 
         if (_followCursor)
@@ -54,13 +56,16 @@ public class DraggableComponent : MonoBehaviour, IInitializePotentialDragHandler
         }
 
         var results = new List<RaycastResult>();
+
+        //result là gameobject hướng tới
         EventSystem.current.RaycastAll(eventData, results);
 
+        GameObject dropAreaObject = null;
         DropArea dropArea = null;
-
         foreach (var result in results)
         {
-            dropArea = result.gameObject.GetComponent<DropArea>();
+            dropAreaObject = result.gameObject;
+            dropArea = dropAreaObject.GetComponent<DropArea>();
 
             if (dropArea != null)
             {
@@ -68,14 +73,31 @@ public class DraggableComponent : MonoBehaviour, IInitializePotentialDragHandler
             }
         }
 
-        if (dropArea != null)
+        if (dropArea != null && dropAreaObject != null && dropArea.Accepts(this))
         {
             if(dropArea.Accepts(this))
             {
                 dropArea.Drop(this);
                 OnEndDragHandler?.Invoke(eventData, true);
+
+                // Xử lý disable list trên
+                if(ItemController.Instance.CheckEquipedItem(dropAreaObject.gameObject.name))
+                {
+                    ItemController.Instance.EquipSelectedItem(transform.gameObject.name);
+                }
                 return;
             }
+        }
+
+        var equipedItem = ItemController.Instance._listEquipedItem?
+            .FirstOrDefault(p => p.GetChildItem() != null && p.GetChildItem().name == this.name);
+
+        // Dành riêng cho phần active lại box va trả lại sản phẩm về list trên
+        if (equipedItem != null)
+        {
+            FakeInventoryController.Instance.InitializeItems(this.name);
+            ItemController.Instance.RemoveEquipedItem(this.name);
+            return;
         }
 
         _rectTransform.anchoredPosition = _startPosition;
